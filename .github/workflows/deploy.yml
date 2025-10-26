@@ -24,9 +24,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
       
-      # - name: Generate lock file
-      #   run: |
-      #     npm install --package-lock-only
+      - name: Generate lock file
+        run: |
+          npm install --package-lock-only
       #     git add package-lock.json
       #     git commit -m
       #     git push
