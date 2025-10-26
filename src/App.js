@@ -1,27 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { QrCode, Plus, Trash2, Eye, Search, Filter, Bell, Clock, TrendingUp, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
-
-// Storage wrapper for GitHub Pages (uses localStorage as fallback)
-const storage = {
-  async get(key) {
-    try {
-      const value = localStorage.getItem(key);
-      return value ? { key, value } : null;
-    } catch (error) {
-      console.error('Storage get error:', error);
-      return null;
-    }
-  },
-  async set(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return { key, value };
-    } catch (error) {
-      console.error('Storage set error:', error);
-      return null;
-    }
-  }
-};
+import { QrCode, Plus, Trash2, Eye, Download, Search, Filter, Bell, Clock, TrendingUp, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 
 const CafeOrderingSystem = () => {
   const [tables, setTables] = useState([]);
@@ -60,10 +38,10 @@ const CafeOrderingSystem = () => {
   const loadData = async () => {
     try {
       const [tablesRes, ordersRes, menuRes, notifRes] = await Promise.all([
-        storage.get('cafe_tables'),
-        storage.get('cafe_orders'),
-        storage.get('cafe_menu'),
-        storage.get('cafe_notifications')
+        window.storage.get('cafe_tables').catch(() => null),
+        window.storage.get('cafe_orders').catch(() => null),
+        window.storage.get('cafe_menu').catch(() => null),
+        window.storage.get('cafe_notifications').catch(() => null)
       ]);
 
       if (tablesRes) setTables(JSON.parse(tablesRes.value));
@@ -81,7 +59,7 @@ const CafeOrderingSystem = () => {
           { id: 5, name: 'Sandwich', price: 7.5, category: 'Food' }
         ];
         setMenuItems(defaultMenu);
-        await storage.set('cafe_menu', JSON.stringify(defaultMenu));
+        await window.storage.set('cafe_menu', JSON.stringify(defaultMenu));
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -92,7 +70,7 @@ const CafeOrderingSystem = () => {
 
   const checkNewOrders = async () => {
     try {
-      const ordersRes = await storage.get('cafe_orders');
+      const ordersRes = await window.storage.get('cafe_orders').catch(() => null);
       if (ordersRes) {
         const storedOrders = JSON.parse(ordersRes.value);
         const newOrders = storedOrders.filter(so => 
@@ -113,24 +91,20 @@ const CafeOrderingSystem = () => {
   };
 
   const playNotificationSound = () => {
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
-    } catch (error) {
-      console.error('Audio error:', error);
-    }
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
   };
 
   const addNotification = async (message, type) => {
@@ -143,18 +117,18 @@ const CafeOrderingSystem = () => {
     };
     const updated = [notif, ...notifications].slice(0, 50);
     setNotifications(updated);
-    await storage.set('cafe_notifications', JSON.stringify(updated));
+    await window.storage.set('cafe_notifications', JSON.stringify(updated));
   };
 
   const markNotificationsRead = async () => {
     const updated = notifications.map(n => ({ ...n, read: true }));
     setNotifications(updated);
-    await storage.set('cafe_notifications', JSON.stringify(updated));
+    await window.storage.set('cafe_notifications', JSON.stringify(updated));
   };
 
   const saveData = async (type, data) => {
     try {
-      await storage.set(`cafe_${type}`, JSON.stringify(data));
+      await window.storage.set(`cafe_${type}`, JSON.stringify(data));
     } catch (error) {
       console.error(`Error saving ${type}:`, error);
     }
@@ -293,17 +267,14 @@ const CafeOrderingSystem = () => {
       }
     }
     
-    const url = `${window.location.origin}${window.location.pathname}?table=${table.id}`;
     ctx.fillStyle = '#1f2937';
-    ctx.font = '16px Arial';
-    ctx.fillText(url, size/2, 360);
     ctx.font = '20px Arial';
-    ctx.fillText('Scan to Order', size/2, 385);
+    ctx.fillText('Scan to Order', size/2, 370);
     
     canvas.toBlob(blob => {
-      const blobUrl = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = blobUrl;
+      a.href = url;
       a.download = `table-${table.number}-qr.png`;
       a.click();
     });
