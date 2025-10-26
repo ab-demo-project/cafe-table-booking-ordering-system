@@ -26,7 +26,8 @@ jobs:
       
       - name: Install dependencies
         run: |
-          npm install --package-lock-only
+          npm install
+          npm audit fix --force
           npm ci
 
       - name: Build project
