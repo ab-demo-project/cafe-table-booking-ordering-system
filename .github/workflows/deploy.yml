@@ -22,13 +22,14 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: package-lock.json
       
-      - name: Install dependencies
-        run: |
-          npm install --package-lock-only
-          git add package-lock.json
-          git commit -m
-          git push
+      # - name: Generate lock file
+      #   run: |
+      #     npm install --package-lock-only
+      #     git add package-lock.json
+      #     git commit -m
+      #     git push
 
       - name: Install dependencies
         run: npm ci
@@ -39,7 +40,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./build   # folder containing your production build (e.g., React, Vite, Next.js export)
+          path: ./build
 
   deploy:
     environment:
