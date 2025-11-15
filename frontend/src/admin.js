@@ -1,5 +1,5 @@
 // admin.js
-const API_URL = 'http://localhost:24245/api';
+const API_URL = 'https://localhost:24245/api';
 let currentFilter = 'all';
 let currentQRCode = null;
 

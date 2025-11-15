@@ -1,5 +1,5 @@
 // app.js - Customer Interface
-const API_URL = 'http://localhost:24245/api';
+const API_URL = 'https://localhost:24245/api';
 let tableId = null;
 let cart = [];
 let menuItems = [];

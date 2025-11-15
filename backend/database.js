@@ -1,6 +1,7 @@
 // backend/database.js
 require("dotenv").config();
 const mysql = require("mysql2/promise");
+const path = require('path');
 const fs = require("fs");
 
 // Aiven MySQL connection
