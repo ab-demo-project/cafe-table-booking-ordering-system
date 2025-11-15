@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const QRCode = require('qrcode');
-const db = require('./database');
+const { db, initialize } = require('./database'); // ✅ destructure pool and init
 
 const app = express();
 const PORT = process.env.PORT || 24245;
@@ -13,17 +13,27 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-// Wait for DB initialize before starting server and exporting routes
+// Wait for DB initialization before starting server
 async function start() {
   try {
-    await db.initialize();
+    await initialize();
   } catch (err) {
-    console.error('Failed to initialize DB. Exiting.');
+    console.error('Failed to initialize DB. Exiting.', err);
     process.exit(1);
   }
 
-  // ROUTES
-  // ============ TABLES ============
+  // ================= HEALTH CHECK =================
+  app.get("/api/health", async (req, res) => {
+    try {
+      await db.query("SELECT 1"); // pool query works now
+      res.json({ status: "ok", database: "connected" });
+    } catch (err) {
+      console.error("HEALTH CHECK DB ERROR:", err);
+      res.json({ status: "error", database: "disconnected", message: err.message });
+    }
+  });
+
+  // ================= TABLES =================
   app.get('/api/tables', async (req, res) => {
     try {
       const [rows] = await db.query('SELECT * FROM tables ORDER BY table_number');
@@ -36,7 +46,7 @@ async function start() {
   app.get('/api/tables/:id', async (req, res) => {
     try {
       const [rows] = await db.query('SELECT * FROM tables WHERE id = ? LIMIT 1', [req.params.id]);
-      if (rows.length === 0) return res.status(404).json({ error: 'Table not found' });
+      if (!rows || rows.length === 0) return res.status(404).json({ error: 'Table not found' });
       res.json({ table: rows[0] });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -63,7 +73,7 @@ async function start() {
     }
   });
 
-  // ============ MENU ============
+  // ================= MENU =================
   app.get('/api/menu', async (req, res) => {
     try {
       const [rows] = await db.query('SELECT * FROM menu_items WHERE available = 1 ORDER BY category, name');
@@ -76,14 +86,17 @@ async function start() {
   app.post('/api/menu', async (req, res) => {
     try {
       const { name, description, price, category } = req.body;
-      const [result] = await db.query('INSERT INTO menu_items (name, description, price, category, available) VALUES (?, ?, ?, ?, 1)', [name, description, price, category]);
+      const [result] = await db.query(
+        'INSERT INTO menu_items (name, description, price, category, available) VALUES (?, ?, ?, ?, 1)',
+        [name, description, price, category]
+      );
       res.json({ id: result.insertId, name, description, price, category, available: true });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // ============ ORDERS ============
+  // ================= ORDERS =================
   app.get('/api/orders', async (req, res) => {
     try {
       const [rows] = await db.query(`
@@ -92,7 +105,6 @@ async function start() {
         LEFT JOIN tables t ON o.table_id = t.id
         ORDER BY o.created_at DESC
       `);
-      // parse JSON items
       const orders = rows.map(r => ({ ...r, items: JSON.parse(r.items) }));
       res.json({ orders });
     } catch (err) {
@@ -115,10 +127,7 @@ async function start() {
       const { table_id, items, total } = req.body;
       const itemsStr = JSON.stringify(items);
       const [result] = await db.query('INSERT INTO orders (table_id, items, total, status) VALUES (?, ?, ?, ?)', [table_id, itemsStr, total, 'pending']);
-
-      // set table occupied
       await db.query('UPDATE tables SET status = ? WHERE id = ?', ['occupied', table_id]);
-
       res.json({ id: result.insertId, table_id, items, total, status: 'pending' });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -135,7 +144,7 @@ async function start() {
     }
   });
 
-  // ============ QR CODE ============
+  // ================= QR CODE =================
   app.get('/api/qr/:tableId', async (req, res) => {
     try {
       const tableId = req.params.tableId;
@@ -148,28 +157,26 @@ async function start() {
     }
   });
 
-  // ============ STATS ============
+  // ================= STATS =================
   app.get('/api/stats', async (req, res) => {
     try {
       const [[totalTablesRow]] = await db.query('SELECT COUNT(*) AS count FROM tables');
       const [[occupiedTablesRow]] = await db.query(`SELECT COUNT(*) AS count FROM tables WHERE status = 'occupied'`);
       const [[pendingOrdersRow]] = await db.query(`SELECT COUNT(*) AS count FROM orders WHERE status = 'pending'`);
-      const [[todayRevenueRow]] = await db.query(`SELECT COALESCE(SUM(total), 0) AS revenue FROM orders WHERE DATE(created_at) = CURRENT_DATE()`);
+      const [[todayRevenueRow]] = await db.query(`SELECT COALESCE(SUM(total),0) AS revenue FROM orders WHERE DATE(created_at) = CURRENT_DATE()`);
 
-      const stats = {
+      res.json({
         totalTables: totalTablesRow.count,
         occupiedTables: occupiedTablesRow.count,
         pendingOrders: pendingOrdersRow.count,
         todayRevenue: todayRevenueRow.revenue
-      };
-
-      res.json(stats);
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // START listening
+  // ================= START SERVER =================
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log('Cafe Management System connected to MySQL!');

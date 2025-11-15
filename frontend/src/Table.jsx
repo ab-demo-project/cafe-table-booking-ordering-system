@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import './style.css'
+import './index.css'
 import './app.js'
 function Table() {
   const [count, setCount] = useState(0)
