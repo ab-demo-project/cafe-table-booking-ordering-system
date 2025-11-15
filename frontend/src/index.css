@@ -507,3 +507,123 @@ header h1 {
         align-items: flex-start;
     }
 }
+
+/* ===================== Reservations ===================== */
+.reservations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.reservation-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    border-left: 4px solid #ff9800; /* orange for reservations */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.reservation-card div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.reservation-card .status-badge {
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+}
+
+.status-badge.reserved {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-badge.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* Reservation Buttons */
+.reservation-card button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    margin: 3px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.reservation-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.reservation-card .btn-primary {
+    background: #28a745;
+    color: white;
+}
+
+.reservation-card .btn-secondary {
+    background: #dc3545;
+    color: white;
+}
+
+/* Reserved Table Highlight */
+.table-card.reserved {
+    border-color: #ff9800; /* orange border for reserved tables */
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .reservation-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+.menu-modal {
+  max-width: 500px;
+  padding: 30px;
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+.menu-form .form-group {
+  margin-bottom: 15px;
+}
+
+.menu-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.menu-form input,
+.menu-form textarea,
+.menu-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.menu-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

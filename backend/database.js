@@ -64,6 +64,17 @@ async function initialize() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS reservations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        table_id INT NOT NULL,
+        reserved_time DATETIME NOT NULL,
+        status VARCHAR(20) DEFAULT 'reserved',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (table_id) REFERENCES tables(id)
+      )
+    `);
 
     // Insert T1–T10
     for (let i = 1; i <= 10; i++) {

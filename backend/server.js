@@ -76,7 +76,7 @@ async function start() {
   // ================= MENU =================
   app.get('/api/menu', async (req, res) => {
     try {
-      const [rows] = await db.query('SELECT * FROM menu_items WHERE available = 1 ORDER BY category, name');
+      const [rows] = await db.query('SELECT * FROM menu_items ORDER BY category, name');
       res.json({ items: rows });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -148,7 +148,7 @@ async function start() {
   app.get('/api/qr/:tableId', async (req, res) => {
     try {
       const tableId = req.params.tableId;
-      const frontendUrl = process.env.FRONTEND_URL || `http://localhost:3000/table.html`;
+      const frontendUrl = process.env.FRONTEND_URL || `http://localhost:5173/table.html`;
       const url = `${frontendUrl}?table=${tableId}`;
       const qrDataUrl = await QRCode.toDataURL(url);
       res.json({ qrCode: qrDataUrl, url });
@@ -176,11 +176,63 @@ async function start() {
     }
   });
 
+  // ============ RESERVATIONS ============
+
+  // Get all reservations
+  app.get('/api/reservations', async (req, res) => {
+    try {
+      const reservations = await db.all(`
+        SELECT r.*, t.table_number
+        FROM reservations r
+        LEFT JOIN tables t ON r.table_id = t.id
+        ORDER BY r.reserved_time DESC
+      `);
+      res.json({ reservations });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Create a reservation
+  app.post('/api/reservations', async (req, res) => {
+    try {
+      const { table_id, reserved_time } = req.body;
+      const result = await db.run(
+        `INSERT INTO reservations (table_id, reserved_time, status) VALUES (?, ?, 'reserved')`,
+        [table_id, reserved_time]
+      );
+
+      // Optionally mark table as reserved in tables table
+      await db.run('UPDATE tables SET status = ? WHERE id = ?', ['reserved', table_id]);
+
+      res.json({ id: result.insertId, table_id, reserved_time, status: 'reserved' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Update reservation status
+  app.put('/api/reservations/:id', async (req, res) => {
+    try {
+      const { status } = req.body;
+      await db.run('UPDATE reservations SET status = ? WHERE id = ?', [status, req.params.id]);
+      
+      // Optionally update table status if cancelled/completed
+      if (status === 'cancelled' || status === 'completed') {
+        const reservation = await db.get('SELECT table_id FROM reservations WHERE id = ?', [req.params.id]);
+        await db.run('UPDATE tables SET status = ? WHERE id = ?', ['available', reservation.table_id]);
+      }
+
+      res.json({ message: 'Reservation updated' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ================= START SERVER =================
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log('Cafe Management System connected to MySQL!');
   });
 }
-
 start();
