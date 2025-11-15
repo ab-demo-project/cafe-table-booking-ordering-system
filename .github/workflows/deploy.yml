@@ -32,6 +32,11 @@ jobs:
         with:
           path: ./build
 
+      - name: Install dependencies
+        run: |
+          npm init -y
+          npm install express cors sqlite3 qrcode dotenv body-parser uuid
+
   deploy:
     environment:
       name: github-pages
